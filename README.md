@@ -12,7 +12,7 @@ This repository is automatically synchronized with the main repository:
 
 ## 📊 Test Coverage
 
-Current coverage threshold: 80%
+Current coverage threshold: 60%
 
 ## 🧪 Running Tests Locally
 
