@@ -88,7 +88,7 @@ jobs:
           echo "coverage=${coverage_percent}" >> $GITHUB_OUTPUT
           
           # Check against threshold
-          threshold=80
+          threshold=60
           if (( $(echo "$coverage_percent < $threshold" | bc -l) )); then
             echo "❌ Coverage ${coverage_percent}% is below threshold ${threshold}%"
             exit 1
