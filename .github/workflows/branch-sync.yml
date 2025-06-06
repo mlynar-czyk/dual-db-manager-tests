@@ -1,0 +1,55 @@
+name: Branch Synchronization
+
+on:
+  repository_dispatch:
+    types: [branch-sync]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly cleanup
+
+jobs:
+  sync-branches:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Handle branch operation
+        if: github.event_name == 'repository_dispatch'
+        run: |
+          action="${{ github.event.client_payload.action }}"
+          branch="${{ github.event.client_payload.branch }}"
+          
+          if [ "$action" = "create" ]; then
+            git checkout -b "$branch"
+            git push origin "$branch"
+            echo "✅ Created branch $branch"
+          elif [ "$action" = "delete" ]; then
+            git push origin --delete "$branch" || true
+            echo "✅ Deleted branch $branch"
+          fi
+
+      - name: Cleanup stale branches
+        if: github.event_name == 'schedule'
+        run: |
+          # Get source repository branches
+          source_repo="${{ github.repository_owner }}/dual-db-manager"
+          
+          # List remote branches
+          git fetch origin
+          
+          # Get list of branches from source repo
+          source_branches=$(gh api repos/${source_repo}/branches --paginate | jq -r '.[].name')
+          
+          # Delete branches that don't exist in source
+          for branch in $(git branch -r | grep -v HEAD | sed 's/origin\///'); do
+            if ! echo "$source_branches" | grep -q "^$branch$"; then
+              echo "Deleting stale branch: $branch"
+              git push origin --delete "$branch" || true
+            fi
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
